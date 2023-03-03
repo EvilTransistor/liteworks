@@ -27,7 +27,7 @@ function draw() {
     let isBeat = spectrum[4] > threshold;
     for (let i = 0; i < circles.length; i++) {
       let circle = circles[i];
-      circle.update(isBeat, spectralFlux);
+      circle.update(spectralFlux);
       circle.display();
     }
     prevSpectrum = spectrum;
@@ -55,17 +55,14 @@ class Circle {
     this.x = x;
     this.y = y;
     this.color = color(random(360), 100, 100);
-    this.radius = 50;
-    this.maxRadius = 150;
+    this.radius = 3;
+    this.minRadius = 3;
+    this.maxRadius = 40;
   }
 
-  update(isBeat, spectralFlux) {
-    let factor = map(spectralFlux, 0, 30000, 0, 1);
-    if (isBeat) {
-      this.radius = this.maxRadius;
-    } else {
-      this.radius = 50 + (this.maxRadius - 50) * factor;
-    }
+  update(beatIntensity) {
+    // Map the beat intensity value to a range of circle radii
+    this.radius = map(beatIntensity, 0, 255, this.minRadius, this.maxRadius);
   }
 
   display() {
@@ -74,6 +71,7 @@ class Circle {
     ellipse(this.x, this.y, this.radius * 2, this.radius * 2);
   }
 }
+
 
 function start() {
   if (!isPlaying) {
