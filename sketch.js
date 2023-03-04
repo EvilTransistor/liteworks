@@ -77,7 +77,7 @@ class Circle {
     this.x = x;
     this.y = y;
     this.color = color(random(360), 100, 100);
-    this.hueIncrement = random(0.5, 1.5);
+    this.hueIncrement = random(0.2, 1.0);
     this.radius = 50;
     this.minRadius = 3;
     this.maxRadius = 150;
