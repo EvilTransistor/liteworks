@@ -1,18 +1,18 @@
-let audioFile;
+let mic;
 let fft;
 let circles = [];
 let prevSpectrum;
 let isPlaying = false;
 
-function preload() {
-  audioFile = loadSound('./assets/Asato (Invader Space & Shadow Remix).mp3');
-}
-
 function setup() {
   createCanvas(windowWidth, windowHeight);
   angleMode(DEGREES);
   colorMode(HSB, 360, 100, 100);
+  mic = new p5.AudioIn();
+  mic.start();
   fft = new p5.FFT();
+  fft.setInput(mic);
+  console.log("setup called")
   for (let i = 0; i < 3; i++) {
     circles.push(new Circle(i * width / 3 + width / 6, height / 2));
   }
@@ -21,16 +21,36 @@ function setup() {
 function draw() {
   if (isPlaying) {
     background(0);
-    let spectrum = fft.analyze();
-    let spectralFlux = calculateSpectralFlux(spectrum, prevSpectrum);
-    let threshold = calculateThreshold(spectralFlux);
-    let isBeat = spectrum[4] > threshold;
-    for (let i = 0; i < circles.length; i++) {
-      let circle = circles[i];
-      circle.update(isBeat, spectralFlux);
-      circle.display();
+
+    // Check if new audio data is available
+    if (mic && mic.enabled && mic.getLevel() > 0.01) {
+      let waveform = fft.waveform();
+      let spectrum = fft.analyze();
+      let spectralFlux = calculateSpectralFlux(spectrum, prevSpectrum);
+      // console.log("spectralFlux: " + spectralFlux);
+      // let threshold = calculateThreshold(spectralFlux);
+
+      // console.log("Circles Arr length: " + circles.length);
+      for (let i = 0; i < circles.length; i++) {
+        let circle = circles[i];
+        circle.update(spectralFlux);
+        circle.display();
+      }
+      prevSpectrum = spectrum;
+
+      // Draw waveform
+      noFill();
+      stroke(255);
+      beginShape();
+      for (let i = 0; i < waveform.length; i++) {
+        let x = map(i, 0, waveform.length, 0, width);
+        let y = map(waveform[i], -1, 1, height, 0);
+        vertex(x, y);
+      }
+      endShape();
+    } else {
+      console.log("No audio input detected");
     }
-    prevSpectrum = spectrum;
   }
 }
 
@@ -50,22 +70,24 @@ function calculateThreshold(spectralFlux) {
   return threshold;
 }
 
+
+
 class Circle {
   constructor(x, y) {
     this.x = x;
     this.y = y;
     this.color = color(random(360), 100, 100);
+    this.hueIncrement = random(0.2, 1.0);
     this.radius = 50;
+    this.minRadius = 3;
     this.maxRadius = 150;
   }
 
-  update(isBeat, spectralFlux) {
-    let factor = map(spectralFlux, 0, 30000, 0, 1);
-    if (isBeat) {
-      this.radius = this.maxRadius;
-    } else {
-      this.radius = 50 + (this.maxRadius - 50) * factor;
-    }
+  update(beatIntensity) {
+    // Map the beat intensity value to a range of circle radii
+    this.radius = map(beatIntensity, 0, 255, this.minRadius, this.maxRadius);
+    // Increment the hue value over time
+    this.color = color((hue(this.color) + this.hueIncrement) % 255, 100, 100);
   }
 
   display() {
@@ -77,7 +99,7 @@ class Circle {
 
 function start() {
   if (!isPlaying) {
-    audioFile.play();
     isPlaying = true;
+    getAudioContext().resume();
   }
 }
